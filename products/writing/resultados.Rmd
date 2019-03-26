@@ -1,0 +1,144 @@
+---
+title: "Resultados"
+author: "Cristiano Santos"
+date: "25 de marco de 2019"
+output: word_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, dpi=300, fig.width=7, fig.height=4)
+library(knitr)
+library(tidyverse)
+library(lubridate)
+library(janitor)
+library(tm)
+library(SnowballC)
+library(wordcloud)
+artigos <- readr::read_rds('../../data/tidy_data/artigos.rds')
+```
+
+## ANÁLISE E DISCUSSÃO DOS RESULTADOS
+
+
+
+### Evolução das publicações 
+
+```{r fig1, echo=FALSE}
+
+aux <- artigos %>%
+  group_by(ano) %>%
+  count()
+aux2 <-as_tibble(cbind(ano=aux$ano[1]:tail(aux$ano,1), n=0))
+aux <- left_join(aux2, aux, "ano")
+
+aux$n.y[is.na(aux$n.y)] <-0
+aux$ano <- factor(aux$ano)
+p <- ggplot(aux, aes(ano, n.y, group=1))+
+  geom_line() 
+
+p  +theme_classic() +  theme(axis.text.x = element_text(angle=90, hjust=1), text=element_text(family="Times New Roman", size=11)) + xlab("ano") + ylab("número de artigos") 
+```
+
+### Distribution of the articles by investigated countries
+
+```{r tab1}
+
+paises  <- str_split(artigos$pais_de_investigacao, ",", simplify = TRUE)
+paises <- as.vector(paises)
+paises <- as.factor(paises[str_count(paises)>0])
+
+tab <- tabyl(paises) %>%
+  adorn_pct_formatting(affix_sign = FALSE) %>%
+  arrange(desc(n)) %>%
+  adorn_totals()
+
+colnames(tab)  <- c("pais", "Numero de artigos",  "%")
+tab[tab$pais=="Total", 3] <- "100"
+
+knitr::kable(tab)
+```
+
+### Distribution of the articles by investigated regions
+
+```{r fig2}
+
+continentes  <- str_split(artigos$continente, ",", simplify = TRUE)
+continentes <- str_replace_all(as.vector(continentes), "^ +", "")
+continentes <- continentes[str_count(continentes)>0]
+dados <- tabyl(continentes)
+
+p <- ggplot(dados, aes(x = reorder(continentes, -percent), y = percent)) +
+  geom_bar(stat = "identity") +
+  scale_y_continuous(labels = scales::percent_format())
+
+p + theme_classic() +  theme(text=element_text(family="Times New Roman", size=11), axis.text = element_text(family="Times New Roman", size=11))  + 
+  xlab(" ") + ylab(" ") 
+```
+
+
+### Distribution of the articles by journal
+
+```{r tab2}
+
+journal <- artigos$fonte
+
+tab <- tabyl(journal) %>%
+  adorn_pct_formatting(affix_sign = FALSE) %>%
+  arrange(desc(n)) %>%
+  adorn_totals()
+
+colnames(tab)  <- c("Revista", "Numero de artigos",  "%")
+tab[tab[,1]=="Total", 3] <- "100"
+
+knitr::kable(tab)
+```
+
+
+
+
+### Statistical and econometric techniques used to study innovation.
+
+```{r fig3}
+modelos <- artigos$metodo
+modelos <- as.factor(modelos)
+
+dados <- tabyl(modelos)
+
+
+p <- ggplot(dados, aes(x = reorder(modelos, -percent), y = percent)) +
+  geom_bar(stat = "identity") +
+  scale_y_continuous(labels = scales::percent_format())
+
+p  +theme_classic() +  theme(axis.text.x = element_text(angle=90, hjust=1), text=element_text(family="Times New Roman", size=11), axis.text = element_text(family="Times New Roman", size=11))  + 
+  xlab(" ") + ylab(" ") 
+
+```
+
+### Wordcloud das variaveis
+
+```{r fig4}
+aux <- artigos$variaveis 
+aux <- str_replace_all(aux, ",", "")
+tweetsDS.Corpus <- Corpus(VectorSource(aux))
+##Data Cleaning and Wrangling
+
+tweetsDS.Clean<-tm_map(tweetsDS.Corpus, PlainTextDocument)
+tweetsDS.Clean<-tm_map(tweetsDS.Clean,tolower)
+tweetsDS.Clean<-tm_map(tweetsDS.Clean,removeNumbers)
+tweetsDS.Clean<-tm_map(tweetsDS.Clean,removeWords,stopwords("pt"))
+# tweetsDS.Clean<-tm_map(tweetsDS.Clean,removePunctuation)
+tweetsDS.Clean<-tm_map(tweetsDS.Clean,stripWhitespace)
+# tweetsDS.Clean<-tm_map(tweetsDS.Clean,stemDocument)
+
+wordcloud(tweetsDS.Clean, max.words = 100,random.color = TRUE,random.order=FALSE)
+```
+
+### determinants of innovation
+
+```{r tab3}
+artigos %>%
+  dplyr::select(variaveis, autores) -> tab
+knitr::kable(tab)
+
+```
+
