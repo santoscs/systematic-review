@@ -12,7 +12,6 @@ library(tidyverse)
 library(lubridate)
 library(janitor)
 library(tm)
-library(SnowballC)
 library(wordcloud)
 artigos <- readr::read_rds('../../data/tidy_data/artigos.rds')
 ```
@@ -117,28 +116,36 @@ p  +theme_classic() +  theme(axis.text.x = element_text(angle=90, hjust=1), text
 ### Wordcloud das variaveis
 
 ```{r fig4}
+
 aux <- artigos$variaveis 
 aux <- str_replace_all(aux, ",", "")
-tweetsDS.Corpus <- Corpus(VectorSource(aux))
-##Data Cleaning and Wrangling
+aux <- str_replace_all(aux, "\n", " ")
+aux <- removeWords(aux, stopwords("pt"))
+aux <- str_replace_all(aux, "  ", " ")
+aux <- str_replace_all(aux, "\\(", "")
+aux <- str_replace_all(aux, "\\)", "")
+aux <- str_replace_all(aux, "\\.", "")
+aux <- unlist(str_split(aux, " "))
+aux <- aux[str_count(aux)>1]
+sele <- str_detect(aux, "[:upper:][:lower:]+")
+aux[sele] <- str_to_lower(aux[sele])
 
-tweetsDS.Clean<-tm_map(tweetsDS.Corpus, PlainTextDocument)
-tweetsDS.Clean<-tm_map(tweetsDS.Clean,tolower)
-tweetsDS.Clean<-tm_map(tweetsDS.Clean,removeNumbers)
-tweetsDS.Clean<-tm_map(tweetsDS.Clean,removeWords,stopwords("pt"))
-# tweetsDS.Clean<-tm_map(tweetsDS.Clean,removePunctuation)
-tweetsDS.Clean<-tm_map(tweetsDS.Clean,stripWhitespace)
-# tweetsDS.Clean<-tm_map(tweetsDS.Clean,stemDocument)
+tmp <- stemDocument(aux, language = "pt")
 
-wordcloud(tweetsDS.Clean, max.words = 100,random.color = TRUE,random.order=FALSE)
+aux2 <- summary(as.factor(tmp))
+word_count <- cbind(word=stemCompletion(names(aux2), aux), count=aux2)
+word_count <- as.data.frame(word_count)
+word_count$count <- as.numeric(as.character(word_count$count))
+
+wordcloud(word_count$word[1:50], word_count$count[1:50])
+
 ```
-
 ### determinants of innovation
 
 ```{r tab3}
 artigos %>%
   dplyr::select(variaveis, autores) -> tab
+
 knitr::kable(tab)
 
 ```
-

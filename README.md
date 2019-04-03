@@ -251,45 +251,32 @@ ANÁLISE E DISCUSSÃO DOS RESULTADOS
 
     aux <- artigos$variaveis 
     aux <- str_replace_all(aux, ",", "")
-    tweetsDS.Corpus <- Corpus(VectorSource(aux))
-    ##Data Cleaning and Wrangling
+    aux <- str_replace_all(aux, "\n", " ")
+    aux <- removeWords(aux, stopwords("pt"))
+    aux <- str_replace_all(aux, "  ", " ")
+    aux <- str_replace_all(aux, "\\(", "")
+    aux <- str_replace_all(aux, "\\)", "")
+    aux <- str_replace_all(aux, "\\.", "")
+    aux <- unlist(str_split(aux, " "))
+    aux <- aux[str_count(aux)>1]
+    sele <- str_detect(aux, "[:upper:][:lower:]+")
+    aux[sele] <- str_to_lower(aux[sele])
 
-    tweetsDS.Clean<-tm_map(tweetsDS.Corpus, PlainTextDocument)
+    tmp <- stemDocument(aux, language = "pt")
 
-    ## Warning in tm_map.SimpleCorpus(tweetsDS.Corpus, PlainTextDocument):
-    ## transformation drops documents
+    aux2 <- summary(as.factor(tmp))
+    word_count <- cbind(word=stemCompletion(names(aux2), aux), count=aux2)
+    word_count <- as.data.frame(word_count)
+    word_count$count <- as.numeric(as.character(word_count$count))
 
-    tweetsDS.Clean<-tm_map(tweetsDS.Clean,tolower)
+    wordcloud(word_count$word[1:50], word_count$count[1:50])
 
-    ## Warning in tm_map.SimpleCorpus(tweetsDS.Clean, tolower): transformation
-    ## drops documents
-
-    tweetsDS.Clean<-tm_map(tweetsDS.Clean,removeNumbers)
-
-    ## Warning in tm_map.SimpleCorpus(tweetsDS.Clean, removeNumbers):
-    ## transformation drops documents
-
-    tweetsDS.Clean<-tm_map(tweetsDS.Clean,removeWords,stopwords("pt"))
-
-    ## Warning in tm_map.SimpleCorpus(tweetsDS.Clean, removeWords,
-    ## stopwords("pt")): transformation drops documents
-
-    # tweetsDS.Clean<-tm_map(tweetsDS.Clean,removePunctuation)
-    tweetsDS.Clean<-tm_map(tweetsDS.Clean,stripWhitespace)
-
-    ## Warning in tm_map.SimpleCorpus(tweetsDS.Clean, stripWhitespace):
-    ## transformation drops documents
-
-    # tweetsDS.Clean<-tm_map(tweetsDS.Clean,stemDocument)
-
-    wordcloud(tweetsDS.Clean, max.words = 100,random.color = TRUE,random.order=FALSE)
-
-![](README_files/figure-markdown_strict/fig4-1.png)
-
-### determinants of innovation
+![](README_files/figure-markdown_strict/fig4-1.png) \#\#\# determinants
+of innovation
 
     artigos %>%
       dplyr::select(variaveis, autores) -> tab
+
     knitr::kable(tab)
 
 <table>
